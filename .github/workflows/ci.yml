@@ -100,30 +100,9 @@ jobs:
           tar -zxvf allure-2.24.0.tgz
           echo "$PWD/allure-2.24.0/bin" >> $GITHUB_PATH
 
-      - name: Get Allure history
-        if: steps.check-results.outputs.exists == 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: gh-pages
-        continue-on-error: true
-
-      - name: Prepare Allure history
-        if: steps.check-results.outputs.exists == 'true'
-        run: |
-          mkdir -p allure-history
-          if [ -d "gh-pages/history" ]; then
-            cp -r gh-pages/history allure-history
-          fi
-
       - name: Generate Allure Report
         if: steps.check-results.outputs.exists == 'true'
-        run: |
-          if [ -d "allure-history" ]; then
-            allure generate allure-results --clean -o allure-report --history allure-history
-          else
-            allure generate allure-results --clean -o allure-report
-          fi
+        run: allure generate allure-results --clean -o allure-report
 
       - name: Upload Allure Report
         if: always() && steps.check-results.outputs.exists == 'true'
