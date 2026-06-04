@@ -1,0 +1,85 @@
+name: Scheduled UI Tests
+
+on:
+  schedule:
+    # Run tests every day at 2:00 AM UTC (10:00 AM Beijing Time)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Test environment'
+        required: false
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - staging
+
+env:
+  PYTHON_VERSION: '3.12'
+  TEST_ENV: ${{ github.event.inputs.environment || 'test' }}
+  HEADLESS: 'true'
+  RECORD_VIDEO: 'true'
+
+jobs:
+  scheduled-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium
+
+      - name: Run tests
+        run: pytest tests/ -v --alluredir=allure-results
+        env:
+          BASE_URL: ${{ secrets.BASE_URL || 'http://121.43.36.83:7081' }}
+          TEST_ENV: ${{ env.TEST_ENV }}
+          HEADLESS: ${{ env.HEADLESS }}
+          RECORD_VIDEO: ${{ env.RECORD_VIDEO }}
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scheduled-test-artifacts
+          path: |
+            allure-results/
+            screenshots/
+            videos/
+          retention-days: 14
+
+      - name: Generate Allure Report
+        uses: simple-elf/allure-report-action@v1.7
+        if: always()
+        with:
+          allure_results: allure-results
+          allure_report: allure-report
+          allure_history: allure-history
+
+      - name: Deploy report to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
+
+      - name: Send notification on failure
+        if: failure()
+        run: |
+          echo "::warning::Scheduled tests failed. Please check the test report."
+          # Add your notification logic here (e.g., Slack, Email, etc.)
