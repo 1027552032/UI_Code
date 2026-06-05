@@ -44,6 +44,7 @@ htmlcov/
 allure-results/
 allure-report/
 allure-history/
+allure-2.24.0/
 
 # Test artifacts
 screenshots/
