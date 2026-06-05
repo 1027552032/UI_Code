@@ -115,8 +115,24 @@ jobs:
       - name: Deploy to GitHub Pages
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && steps.check-results.outputs.exists == 'true'
         uses: peaceiris/actions-gh-pages@v4
+        id: deploy
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: allure-report
           keep_files: false
+          enable_jekyll: false
+          commit_message: "Deploy Allure report"
+        continue-on-error: true
+
+      - name: Retry deployment on failure
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && steps.check-results.outputs.exists == 'true' && steps.deploy.outcome == 'failure'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-report
+          keep_files: false
+          enable_jekyll: false
+          commit_message: "Deploy Allure report (retry)"
+        continue-on-error: true
